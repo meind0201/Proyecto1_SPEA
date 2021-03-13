@@ -1,8 +1,16 @@
 import paho.mqtt.client as mqtt
+import random as r
+import math
 
+#Implementacion Diffie-Hellman
+primeNumber =  149;
+generator = 3;
+private_key = r.randint(0,600);
+public_key = (math.pow(generator,private_key))%primeNumber;
+pubKeyReceived = 0;
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
+    print("Connected with result code "+str(rc)+",public key: "+str(public_key) )
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -11,8 +19,20 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
-
+    print(msg.topic+" "+str(msg.payload.decode('utf-8')))
+  
+    i=0;
+    mensajeRecibido ="";
+    payload = str(msg.payload.decode('utf-8'));
+    print(payload)
+    while payload[i]!='.' and i<len(payload):
+        mensajeRecibido = mensajeRecibido + payload[i];
+        i+= 1
+    
+    mensajeRecibido = int(mensajeRecibido)
+    if public_key != mensajeRecibido:  #Recibo la public key del otro nodo
+        pubKeyReceived = mensajeRecibido;
+    
 
 if __name__ == '__main__':
     client = mqtt.Client()
@@ -22,4 +42,9 @@ if __name__ == '__main__':
     client.username_pw_set("public","public")
 
     client.connect("public.cloud.shiftr.io", 1883, 60)
-    client.loop_forever()
+    client.publish("hola",str(public_key)+"/"+"message" , 2, False)
+    client.loop_start()
+    while True:
+        pass
+    
+    
