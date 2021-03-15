@@ -10,11 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
 from cryptography.hazmat.backends import default_backend
 
 
-
-
 class DHExchange(object):
-
-
     parameters = None
     private_key = None
     public_key = None

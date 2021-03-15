@@ -1,13 +1,5 @@
 import paho.mqtt.client as mqtt
-import random as r
-import math
 
-#Implementacion Diffie-Hellman
-primeNumber =  149;
-generator = 3;
-private_key = r.randint(0,600);
-public_key = (math.pow(generator,private_key))%primeNumber;
-pubKeyReceived = 0;
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc)+",public key: "+str(public_key) )
@@ -20,7 +12,7 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload.decode('utf-8')))
-  
+
     i=0;
     mensajeRecibido ="";
     payload = str(msg.payload.decode('utf-8'));
@@ -28,11 +20,11 @@ def on_message(client, userdata, msg):
     while payload[i]!='.' and i<len(payload):
         mensajeRecibido = mensajeRecibido + payload[i];
         i+= 1
-    
+
     mensajeRecibido = int(mensajeRecibido)
     if public_key != mensajeRecibido:  #Recibo la public key del otro nodo
         pubKeyReceived = mensajeRecibido;
-    
+
 
 if __name__ == '__main__':
     client = mqtt.Client()
@@ -46,5 +38,3 @@ if __name__ == '__main__':
     client.loop_start()
     while True:
         pass
-    
-    
