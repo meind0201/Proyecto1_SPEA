@@ -49,7 +49,7 @@ class CmdAP(cmd.Cmd):
        
         xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
         #client.publish("DH_AP_ESP", xml_public_key, 2, False)
-         
+         #
         #Genera clave simetrica
          
          

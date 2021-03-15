@@ -1,5 +1,5 @@
 
-
+#ff
 
 class KMS(object):
     listaDispositivos = []
