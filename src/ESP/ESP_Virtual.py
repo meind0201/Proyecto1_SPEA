@@ -5,30 +5,24 @@ Created on 8 mar. 2021
 '''
 
 import paho.mqtt.client as mqtt
-import time
-import random as r
-import math
-from ESP import DH
-from AP.AP import public_key
-import xml.etree.ElementTree as ET
+from KMS import DH
 import cmd
 
 shared_key = None
-
+pubKeyReceived = 0;
 
 
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
-    client.subscribe("hola")
+    client.subscribe("DH_AP_ESP")
     print("Connected with result code "+str(rc))
 
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-   
-    print(msg.topic+" "+str(msg.payload))
-
+    #print(msg.topic+" "+str(msg.payload))
+    print(".")
 
 
 def main():
@@ -56,17 +50,19 @@ class CmdESP_Virtual(cmd.Cmd):
         #por hacer
         
         diffie = DH.DHExchange( param = None )
-        print(diffie.get_public_key_and_param()[0])
+        pubkey = diffie.get_public_key_and_param()[0]
+        print(str(pubkey))
        
         #Mandamos a plataforma
-    
-    
-        #xml_public_key = 
+       
+        xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
          
-        client.publish("SPEA_PracticaMQTT/",str(public_key)+"/"+"message" , 2, False)
+        
            
-        while True:
-           pass
+        while pubKeyReceived == 0 :
+           client.publish("DH_ESP_AP",xml_public_key , 2, False)
+   
+   
    
     def do_exit(self,args):
         print("Exiting successfully")

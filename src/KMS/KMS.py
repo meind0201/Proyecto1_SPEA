@@ -1,12 +1,13 @@
-'''
-Created on 12 mar. 2021
 
-@author: migue
-'''
+AP_PublicKey = None
+ESP_PublicKey = None
+
+def main():
+    print()
 
 
 if __name__ == '__main__':
-    
+    main()
     #Creamos los parametros
  
     pass

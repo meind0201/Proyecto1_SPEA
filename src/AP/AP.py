@@ -1,50 +1,73 @@
 import paho.mqtt.client as mqtt
-import random as r
-import math
+import cmd
+from KMS import DH
+import xml.etree.ElementTree as ET
 
-#Implementacion Diffie-Hellman
-primeNumber =  149;
-generator = 3;
-private_key = r.randint(0,600);
-public_key = (math.pow(generator,private_key))%primeNumber;
-pubKeyReceived = 0;
+
+shared_key = None
+
+
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc)+",public key: "+str(public_key) )
-
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    client.subscribe("hola")
+    client.subscribe("DH_ESP_AP")
 
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload.decode('utf-8')))
+
   
-    i=0;
-    mensajeRecibido ="";
-    payload = str(msg.payload.decode('utf-8'));
-    print(payload)
-    while payload[i]!='.' and i<len(payload):
-        mensajeRecibido = mensajeRecibido + payload[i];
-        i+= 1
+  
+def main():
+    cmdInstancia = CmdAP(cmd.Cmd)
+    cmdInstancia.cmdloop();
     
-    mensajeRecibido = int(mensajeRecibido)
-    if public_key != mensajeRecibido:  #Recibo la public key del otro nodo
-        pubKeyReceived = mensajeRecibido;
+
+class CmdAP(cmd.Cmd):
+    intro = '           _____  \n     /\   |  __ \ \n    /  \  | |__) |\n   / /\ \ |  ___/\n  / ____ \| |\n /_/    \_\_|     \n'
+
+    prompt = 'AP>>>'
     
+    def do_start(self, args):
+        'Lanzar AP'
+         #Inicializamos el cliente
+        client = mqtt.Client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        client.username_pw_set("public","public")
+        client.connect("public.cloud.shiftr.io", 1883, 60)
+        client.loop_start()
+        
+        #Recibe parametros de AP y forma su propias claves
+        #por hacer
+        
+        diffie = DH.DHExchange( param = None )
+        pubkey = diffie.get_public_key_and_param()[0]
+        print(pubkey)
+       
+        #Mandamos a plataforma
+       
+        xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
+        client.publish("DH_AP_ESP", xml_public_key, 2, False)
+         
+        #Genera clave simetrica
+         
+         
+         
+         
+    def do_ejemplo(self, args):
+        
+        xmle='<root><data>b"-----BEGIN PUBLIC KEY-----\nMIGaMFMGCSqGSIb3DQEDATBGAkEA/RjM6Su358xSzRO2dLIU5qQL2dIhWkWrf98J\nzjhlNFcszuuFRuV6IIDCFIzRiOUCNPP2CNjR4sXJe5tWZvvGEwIBAgNDAAJAHE/b\nSLMoHayEju6gE2pVQrDZJD9zmwEzyg4vuf0F9kTfnpYE+tu57FCzFwDEWlLU4gni\nCszmHsYG+f25YMQASg==\n-----END PUBLIC KEY-----\n"</data></root>'
+        ejemplo = ET.fromstring(xmle)
+        print(ejemplo[0].text)
+    
+       
+   
+    def do_exit(self,args):
+        print("Exiting successfully")
+        return True
+
+
 
 if __name__ == '__main__':
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    client.username_pw_set("public","public")
-
-    client.connect("public.cloud.shiftr.io", 1883, 60)
-    client.publish("hola",str(public_key)+"/"+"message" , 2, False)
-    client.loop_start()
-    while True:
-        pass
-    
-    
+    main()  
