@@ -1,6 +1,6 @@
 import paho.mqtt.client as mqtt
 import cmd
-from KMS import DH
+from AsymCrypto import DH
 import xml.etree.ElementTree as ET
 
 

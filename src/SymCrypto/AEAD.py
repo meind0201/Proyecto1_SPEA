@@ -9,4 +9,4 @@ def cifrar(cadena, key,nonce, AAD):
 
 def descifrar(cadena_cifrada, key, nonce, AAD):
     aesgcm = AESGCM(key)
-    return aesgcm.decrypt(nonce.encode(), bytes.fromhex(cadena_cifrada) , AAD.encode()).decode()
+    return aesgcm.decrypt(nonce.encode(), bytes.fromhex(

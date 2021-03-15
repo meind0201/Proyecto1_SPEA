@@ -5,7 +5,7 @@ Created on 8 mar. 2021
 '''
 
 import paho.mqtt.client as mqtt
-from KMS import DH
+from AsymCrypto import DH
 
 
 import cmd
