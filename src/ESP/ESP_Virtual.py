@@ -6,17 +6,18 @@ Created on 8 mar. 2021
 
 import paho.mqtt.client as mqtt
 from KMS import DH
+
+
 import cmd
 
 shared_key = None
 pubKeyReceived = 0;
 
-
-
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_AP_ESP")
     print("Connected with result code "+str(rc))
+
 
 
 # The callback for when a PUBLISH message is received from the server.
@@ -25,24 +26,23 @@ def on_message(client, userdata, msg):
     print(".")
 
 
+
 def main():
-    
     cmdInstancia = CmdESP_Virtual(cmd.Cmd)
     cmdInstancia.cmdloop();
-    
- 
+
 
 class CmdESP_Virtual(cmd.Cmd):
     intro = ' ______  _____ _______      ___      _               _ \n|  ____|/ ____|  __ \ \    / (_)    | |             | |\n| |__  | (___ | |__) \ \  / / _ _ __| |_ _   _  __ _| |\n|  __|  \___ \|  ___/ \ \/ / | | |__| __| | | |/ _` | |\n| |____ ____) | |      \  /  | | |  | |_| |_| | (_| | |\n|______|_____/|_|       \/   |_|_|   \__|\__,_|\__,_|_|'
     prompt = 'ESP_Virtual>>>'
-    
+
     def do_start(self, args):
         'Lanzar ESP'
-         #Inicializamos el cliente
+        # Inicializamos el cliente
         client = mqtt.Client()
         client.on_connect = on_connect
         client.on_message = on_message
-        client.username_pw_set("public","public")
+        client.username_pw_set("public", "public")
         client.connect("public.cloud.shiftr.io", 1883, 60)
         client.loop_start()
         
@@ -65,8 +65,10 @@ class CmdESP_Virtual(cmd.Cmd):
    
    
     def do_exit(self,args):
+
         print("Exiting successfully")
         return True
+
 
 if __name__ == '__main__':
     main()

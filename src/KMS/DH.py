@@ -11,9 +11,8 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey as rsa
 from cryptography.hazmat.primitives import serialization
 
 
+
 class DHExchange(object):
-
-
     parameters = None
     private_key = None
     public_key = None
