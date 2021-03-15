@@ -3,20 +3,19 @@ import cmd
 from AsymCrypto import DH
 import xml.etree.ElementTree as ET
 
-
 shared_key = None
-
 
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
-
+    
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload.decode('utf-8')))
 
-
+    msgRecibido = ET.fromstring(str(msg.payload.decode('utf-8')))
+    print(msgRecibido[0].text)
   
   
 def main():
@@ -44,12 +43,12 @@ class CmdAP(cmd.Cmd):
         
         diffie = DH.DHExchange( param = None )
         pubkey = diffie.get_public_key_and_param()[0]
-        print(pubkey)
+        #print(pubkey)
        
         #Mandamos a plataforma
        
         xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
-        client.publish("DH_AP_ESP", xml_public_key, 2, False)
+        #client.publish("DH_AP_ESP", xml_public_key, 2, False)
          
         #Genera clave simetrica
          
