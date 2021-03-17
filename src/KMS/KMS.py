@@ -1,13 +1,12 @@
 
-AP_PublicKey = None
-ESP_PublicKey = None
+#ff
 
-def main():
-    print()
+class KMS(object):
+    listaDispositivos = []
 
-
-if __name__ == '__main__':
-    main()
-    #Creamos los parametros
- 
-    pass
+    def add_device(self):
+        print()
+    
+    def delete_device(self):
+        print() 
+        

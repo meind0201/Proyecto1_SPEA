@@ -1,22 +1,23 @@
 import paho.mqtt.client as mqtt
 import cmd
 from AsymCrypto import DH
+from cryptography.hazmat.primitives import hashes, hmac
 import xml.etree.ElementTree as ET
-
+from cryptography.hazmat.backends import default_backend
 
 shared_key = None
 
 
-
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
-
+    
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload.decode('utf-8')))
 
-
+    msgRecibido = ET.fromstring(str(msg.payload.decode('utf-8')))
+    print(msgRecibido[0].text)
   
   
 def main():
@@ -44,7 +45,7 @@ class CmdAP(cmd.Cmd):
         
         diffie = DH.DHExchange( param = None )
         pubkey = diffie.get_public_key_and_param()[0]
-        print(pubkey)
+        #print(pubkey)
        
         #Mandamos a plataforma
        
@@ -53,6 +54,15 @@ class CmdAP(cmd.Cmd):
          
         #Genera clave simetrica
          
+        hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
+            #hashMaster.update(masterKey) necesitamos master key
+        hashMaster= hashMaster.finalize()
+        self.shared_key = self.private_key.exchange(pubkey)
+        hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
+        hmacCalculado.update(self.shared_key)
+        hmacCalculado = hmacCalculado.finalize()
+        authenticated_key = hmacCalculado[0:16] #Will be stored in KMS for authentication
+        symmetric_key = hmacCalculado[16:48] #Used for symmetric cipher
          
          
          
