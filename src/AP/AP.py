@@ -1,7 +1,9 @@
 import paho.mqtt.client as mqtt
 import cmd
 from AsymCrypto import DH
+from cryptography.hazmat.primitives import hashes, hmac
 import xml.etree.ElementTree as ET
+from cryptography.hazmat.backends import default_backend
 
 shared_key = None
 
@@ -48,10 +50,19 @@ class CmdAP(cmd.Cmd):
         #Mandamos a plataforma
        
         xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
-        #client.publish("DH_AP_ESP", xml_public_key, 2, False)
-         #
+        client.publish("DH_AP_ESP", xml_public_key, 2, False)
+         
         #Genera clave simetrica
          
+        hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
+            #hashMaster.update(masterKey) necesitamos master key
+        hashMaster= hashMaster.finalize()
+        self.shared_key = self.private_key.exchange(pubkey)
+        hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
+        hmacCalculado.update(self.shared_key)
+        hmacCalculado = hmacCalculado.finalize()
+        authenticated_key = hmacCalculado[0:16] #Will be stored in KMS for authentication
+        symmetric_key = hmacCalculado[16:48] #Used for symmetric cipher
          
          
          
