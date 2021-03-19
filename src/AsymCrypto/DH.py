@@ -26,6 +26,6 @@ class DHExchange(object):
     def get_public_key_and_param(self): 
         return [self.public_key, self.parameters]
     
-    def get_priv_key(self):
-        return self.private_key
-    
+    def get_shared_key(self, pubKey_ESP):
+        shared_key = self.private_key.exchange(pubKey_ESP)
+        return shared_key

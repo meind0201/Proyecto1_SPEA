@@ -23,8 +23,8 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    #print(msg.topic+" "+str(msg.payload))
-    print(".")
+    print(msg.topic+" "+str(msg.payload))
+   
 
 
 
@@ -56,12 +56,13 @@ class CmdESP_Virtual(cmd.Cmd):
        
         #Mandamos a plataforma
        
-        xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
+       #{pubkey}
+        xml_public_key = '<?xml version="1.0"?> <root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey)
          
-        
-           
-        while pubKeyReceived == 0 :
-           client.publish("DH_ESP_AP",xml_public_key , 2, False)
+        while True:
+            #DH_ESP_AP
+            #/conexion/nueva"
+            client.publish("/conexion/nueva",xml_public_key , 2, False)
    
    
     def do_ejemplo(self,args):
