@@ -9,6 +9,7 @@ from AsymCrypto import DH
 
 
 import cmd
+from KMS import KMS_
 
 shared_key = None
 pubKeyReceived = 0;
@@ -63,7 +64,10 @@ class CmdESP_Virtual(cmd.Cmd):
            client.publish("DH_ESP_AP",xml_public_key , 2, False)
    
    
-   
+    def do_ejemplo(self,args):
+        kms = KMS_.KMS_()
+        print(kms.get_hola())
+    
     def do_exit(self,args):
 
         print("Exiting successfully")

@@ -4,9 +4,9 @@ from AsymCrypto import DH
 from cryptography.hazmat.primitives import hashes, hmac
 import xml.etree.ElementTree as ET
 from cryptography.hazmat.backends import default_backend
-
+from KMS import KMS_
 shared_key = None
-
+private_key = None
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
@@ -45,6 +45,7 @@ class CmdAP(cmd.Cmd):
         
         diffie = DH.DHExchange( param = None )
         pubkey = diffie.get_public_key_and_param()[0]
+        self.private_key = diffie.get_priv_key()
         #print(pubkey)
        
         #Mandamos a plataforma
@@ -55,16 +56,20 @@ class CmdAP(cmd.Cmd):
         #Genera clave simetrica
          
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
-            #hashMaster.update(masterKey) necesitamos master key
+        masterKey = KMS_.KMS_().get_masterKey()
+        hashMaster.update(masterKey)
         hashMaster= hashMaster.finalize()
+        
         self.shared_key = self.private_key.exchange(pubkey)
         hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
         hmacCalculado.update(self.shared_key)
         hmacCalculado = hmacCalculado.finalize()
-        authenticated_key = hmacCalculado[0:16] #Will be stored in KMS for authentication
-        symmetric_key = hmacCalculado[16:48] #Used for symmetric cipher
+        authenticated_key = hmacCalculado[0:16] 
+        symmetric_key = hmacCalculado[16:48] 
          
-         
+        msg = "hola" 
+        
+      
          
     def do_ejemplo(self, args):
         
@@ -72,7 +77,9 @@ class CmdAP(cmd.Cmd):
         ejemplo = ET.fromstring(xmle)
         print(ejemplo[0].text)
     
-       
+        kms = KMS_.KMS_()
+        print(kms.get_hola())
+     
    
     def do_exit(self,args):
         print("Exiting successfully")
