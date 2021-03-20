@@ -52,17 +52,16 @@ class CmdESP_Virtual(cmd.Cmd):
         
         diffie = DH.DHExchange( param = None )
         pubkey = diffie.get_public_key_and_param()[0]
-        print(str(pubkey))
+        print(pubkey)
        
         #Mandamos a plataforma
-       
+
        #{pubkey}
-        xml_public_key = '<?xml version="1.0"?> <root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey)
+        xml_public_key = '<?xml version="1.0"?> <root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
          
-        while True:
             #DH_ESP_AP
             #/conexion/nueva"
-            client.publish("/conexion/nueva",xml_public_key , 2, False)
+        client.publish("/conexion/nueva", xml_public_key, 2, False)
    
    
     def do_ejemplo(self,args):
