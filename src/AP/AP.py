@@ -6,13 +6,16 @@ import xml.etree.ElementTree as ET
 from cryptography.hazmat.backends import default_backend
 from KMS import KMS_
 from SymCrypto.AEAD import AEAD
+from time import sleep
+from SymCrypto.FernetCustom import FernetCustom
 
 shared_key = None
 private_key = None
 pubkey = None
 symmetric_key = None
 authenticated_key = None
-opcion = "AEAD"
+opcion = "Fernet"
+kms = None
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
@@ -21,20 +24,21 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    
+    global opcion
+    global kms
     if msg.topic == "/conexion/nueva":
         #Mandamos a plataforma
-       
-        xml_public_key = '<?xml version="1.0"?> <root><pubk> {pubkey}</pubk><\root>'.format(pubkey=pubkey)
+        print(pubkey)
+        xml_public_key = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
 
         # Conexion con dispositivo IOT
         
         client.publish("DH_AP_ESP", xml_public_key, 2, False)
 
         # Genera clave simetrica
-
+        print(kms)
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
-        masterKey = KMS_.KMS_().get_masterKey()
+        masterKey = kms.get_masterKey()
         hashMaster.update(masterKey)
         hashMaster = hashMaster.finalize()
 
@@ -49,21 +53,33 @@ def on_message(client, userdata, msg):
         hmacCalculado = hmacCalculado.finalize()
         authenticated_key = hmacCalculado[0:16]
         symmetric_key = hmacCalculado[16:48]
+        print("sym", symmetric_key)
+        
+        xml_hmac = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=hmacCalculado.hex())
 
+        client.publish("HMAC", xml_hmac, 2, False)
+        sleep(2)
         if opcion == "AEAD":
             f = AEAD(symmetric_key)
-            msgCifrado = f.encrypt("Connected", None, "AAD")
-            xml_msgCifrado = '<?xml version="1.0"?> <root><cif> {msgCifrado}</cif><\root>'.format(msgCifrado=msgCifrado)
-            client.publish("DH_AP_ESP", xml_msgCifrado, 2, False)
-       
+            msgCifrado = f.encrypt("Connected",b'\x03R\xc0@\x1d\xbf7\x86\xf1\xce\xbd\x85')
+            xml_msgCifrado = '<?xml version="1.0"?> <root><cif>{msgCifrado}</cif></root>'.format(msgCifrado=msgCifrado.hex())
+            client.publish("AP_ESP_MSG", xml_msgCifrado, 2, False)
+        elif opcion == "Fernet":
+            f = FernetCustom(symmetric_key)
+            msgCifrado = f.encrypt("Connected")
+            xml_msgCifrado = '<?xml version="1.0"?> <root><cif>{msgCifrado}</cif></root>'.format(msgCifrado=msgCifrado.hex())
+            client.publish("AP_ESP_MSG", xml_msgCifrado, 2, False)
     else :
         print(msg.topic+" "+str(msg.payload.decode('utf-8')))
       
     
   
 def main():
+    global kms
+    kms = KMS_.KMS_()
     cmdInstancia = CmdAP(cmd.Cmd)
     cmdInstancia.cmdloop();
+   
     
 
 class CmdAP(cmd.Cmd):
@@ -74,11 +90,12 @@ class CmdAP(cmd.Cmd):
     def do_start(self, args):
         'Lanzar AP'
         
+        global opcion
         if len(args) > 0 :
             opcion = args[0]
         
 
-         #Inicializamos el cliente
+        #Inicializamos el cliente
         client = mqtt.Client()
         client.on_connect = on_connect
         client.on_message = on_message
@@ -90,9 +107,9 @@ class CmdAP(cmd.Cmd):
         #por hacer
         
         diffie = DH.DHExchange( param = None )
-        self.pubkey = diffie.get_public_key_and_param()[0]
+        global pubkey
+        pubkey = diffie.get_public_key_and_param()[0]
         #print(pubkey)
-       
 
       
          

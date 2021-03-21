@@ -27,5 +27,6 @@ class DHExchange(object):
         return [self.public_key, self.parameters]
     
     def get_shared_key(self, pubKey_ESP):
+        print("ksdsd: ", pubKey_ESP)
         shared_key = self.private_key.exchange(serialization.load_pem_public_key(pubKey_ESP))
         return shared_key

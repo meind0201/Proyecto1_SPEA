@@ -1,8 +1,8 @@
 from cryptography.fernet import Fernet
-
+import base64
 class FernetCustom:
     def __init__(self, key):
-        self.f = Fernet(key)
+        self.f = Fernet(base64.urlsafe_b64encode(key))
 
     @staticmethod
     def generate_key():
