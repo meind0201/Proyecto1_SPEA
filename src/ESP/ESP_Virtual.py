@@ -13,6 +13,7 @@ import cmd
 from KMS import KMS_
 from SymCrypto.AEAD import AEAD
 from SymCrypto.FernetCustom import FernetCustom
+from AP.AP import param
 hmacCalculado = None
 shared_key = None
 pubKeyReceived = 0;
@@ -20,6 +21,10 @@ opcion = "Fernet"
 symmetric_key = None
 authenticated_key = None
 masterKey = None
+pubkey = None
+pubkey_ap = None
+
+
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_AP_ESP")
@@ -37,29 +42,36 @@ def on_message(client, userdata, msg):
     global opcion
     global hmacCalculado
     global masterKey
+    global pubkey
+    global pubkey_ap
+    
     if msg.topic == "DH_AP_ESP":
        
+        
+        pubkey_ap_tree = ET.fromstring((msg.payload.decode('utf-8')))
+       
+        pubkey_ap = bytes.fromhex(pubkey_ap_tree[0].text)
+        
+        param = {}
+        param["p"] = int(pubkey_ap_tree[1].text)
+        param["g"] =  int(pubkey_ap_tree[2].text)
+        
+        
+        diffie = DH.DHExchange( param = param )
+        pubkey = diffie.get_public_key_and_param()[0]
+  
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
         masterKey = KMS_.KMS_().get_masterKey()
         hashMaster.update(masterKey)
         hashMaster = hashMaster.finalize()
     
-        pubkey_ap = ET.fromstring((msg.payload.decode('utf-8')))
-        pubkey_ap = bytes.fromhex(pubkey_ap[0].text)
-        diffie = DH.DHExchange(param=None)
-        shared_key = diffie.get_shared_key(pubkey_ap)
-         
-           
-    elif msg.topic == "HMAC":
+        shared_key = diffie.get_shared_key(pubkey_ap)       
         
-        hmacCalculado = ET.fromstring((msg.payload.decode('utf-8')))
-        hmacCalculado = bytes.fromhex(hmacCalculado[0].text)
-           #hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
-            #hmacCalculado.update(shared_key)
-            #hmacCalculado = hmacCalculado.finalize()
-       
+        print("shared ", shared_key )
         
-        print("hmac ", hmacCalculado)
+        xml_iot_pubkey = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
+
+        client.publish("DH_AP_ESP", xml_iot_pubkey, 2, False)
         
     elif msg.topic == "AP_ESP_MSG":
        
@@ -102,21 +114,10 @@ class CmdESP_Virtual(cmd.Cmd):
         client.connect("public.cloud.shiftr.io", 1883, 60)
         client.loop_start()
         
-        #Recibe parametros de AP y forma su propias claves
-        #por hacer
-        
-        diffie = DH.DHExchange( param = None )
-        pubkey = diffie.get_public_key_and_param()[0]
-        #print(pubkey)
-       
-        #Mandamos a plataforma
 
-       #{pubkey}
-        xml_public_key = '<?xml version="1.0"?> <root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
-         
             #DH_ESP_AP
             #/conexion/nueva"
-        client.publish("/conexion/nueva", xml_public_key, 2, False)
+        client.publish("/conexion/nueva", "hi", 2, False)
    
    
     def do_ejemplo(self,args):

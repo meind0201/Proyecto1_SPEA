@@ -16,7 +16,7 @@ symmetric_key = None
 authenticated_key = None
 opcion = "Fernet"
 kms = None
-
+param = None
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
     client.subscribe("/conexion/nueva")
@@ -26,17 +26,19 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global opcion
     global kms
+    global param
     if msg.topic == "/conexion/nueva":
         #Mandamos a plataforma
-        print(pubkey)
-        xml_public_key = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
+        #print(pubkey)
+        xml_public_key = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk><p>{p}</p><g>{g}</g></root>'.format(pubkey=pubkey.hex(), p = param.parameter_numbers().p, g = param.parameter_numbers().g)
 
         # Conexion con dispositivo IOT
         
         client.publish("DH_AP_ESP", xml_public_key, 2, False)
 
+    elif msg.topic == "/DH_ESP_AP":
         # Genera clave simetrica
-        print(kms)
+      
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
         masterKey = kms.get_masterKey()
         hashMaster.update(masterKey)
@@ -53,7 +55,7 @@ def on_message(client, userdata, msg):
         hmacCalculado = hmacCalculado.finalize()
         authenticated_key = hmacCalculado[0:16]
         symmetric_key = hmacCalculado[16:48]
-        print("sym", symmetric_key)
+        print("shared", shared_key)
         
         xml_hmac = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=hmacCalculado.hex())
 
@@ -91,6 +93,9 @@ class CmdAP(cmd.Cmd):
         'Lanzar AP'
         
         global opcion
+        global pubkey
+        global param
+        
         if len(args) > 0 :
             opcion = args[0]
         
@@ -107,9 +112,9 @@ class CmdAP(cmd.Cmd):
         #por hacer
         
         diffie = DH.DHExchange( param = None )
-        global pubkey
-        pubkey = diffie.get_public_key_and_param()[0]
-        #print(pubkey)
+       
+        pubkey, param = diffie.get_public_key_and_param()
+        
 
       
          
