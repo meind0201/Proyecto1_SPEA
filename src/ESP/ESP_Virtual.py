@@ -13,7 +13,6 @@ import cmd
 from KMS import KMS_
 from SymCrypto.AEAD import AEAD
 from SymCrypto.FernetCustom import FernetCustom
-from AP.AP import param
 hmacCalculado = None
 shared_key = None
 pubKeyReceived = 0;
@@ -36,7 +35,6 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
     global symmetric_key
     global authenticated_key
     global opcion
@@ -46,49 +44,56 @@ def on_message(client, userdata, msg):
     global pubkey_ap
     
     if msg.topic == "DH_AP_ESP":
-       
-        
         pubkey_ap_tree = ET.fromstring((msg.payload.decode('utf-8')))
-       
+
         pubkey_ap = bytes.fromhex(pubkey_ap_tree[0].text)
-        
+        print(str(pubkey_ap_tree[1].text))
         param = {}
         param["p"] = int(pubkey_ap_tree[1].text)
-        param["g"] =  int(pubkey_ap_tree[2].text)
-        
-        
-        diffie = DH.DHExchange( param = param )
+        param["g"] = int(pubkey_ap_tree[2].text)
+
+        diffie = DH.DHExchange(param=param)
         pubkey = diffie.get_public_key_and_param()[0]
-  
+
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
         masterKey = KMS_.KMS_().get_masterKey()
         hashMaster.update(masterKey)
         hashMaster = hashMaster.finalize()
-    
-        shared_key = diffie.get_shared_key(pubkey_ap)       
-        
-        print("shared ", shared_key )
-        
-        xml_iot_pubkey = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
 
-        client.publish("DH_AP_ESP", xml_iot_pubkey, 2, False)
-        
+        print("hashMaster: ", hashMaster)
+
+        shared_key = diffie.get_shared_key(pubkey_ap)
+
+        print("shared ", shared_key)
+        xml_iot_pubkey = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=pubkey.hex())
+        client.publish("DH_ESP_AP", xml_iot_pubkey, 2, False)
+
+        hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
+        hmacCalculado.update(shared_key)
+        hmacCalculado = hmacCalculado.finalize()
+        authenticated_key = hmacCalculado[0:16]
+        symmetric_key = hmacCalculado[16:48]
+
+
     elif msg.topic == "AP_ESP_MSG":
-       
-        print("sym" ,symmetric_key)
-      
+
+        print("sym", symmetric_key)
+
         mensajeCifrado = ET.fromstring((msg.payload.decode('utf-8')))
         mensajeCifrado = bytes.fromhex(mensajeCifrado[0].text)
         if opcion == "AEAD":
-            
+
             f = AEAD(symmetric_key)
-            msgCifrado = f.decrypt(mensajeCifrado,b'\x03R\xc0@\x1d\xbf7\x86\xf1\xce\xbd\x85')
+            msgCifrado = f.decrypt(mensajeCifrado, b'\x03R\xc0@\x1d\xbf7\x86\xf1\xce\xbd\x85')
             print(msgCifrado)
         elif opcion == "Fernet":
             f = FernetCustom(symmetric_key)
             msgCifrado = f.decrypt(mensajeCifrado)
             print(msgCifrado)
-       
+    else:
+        print(msg.topic + " " + str(msg.payload))
+
+
 def main():
     cmdInstancia = CmdESP_Virtual(cmd.Cmd)
     cmdInstancia.cmdloop();

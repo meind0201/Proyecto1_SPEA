@@ -17,16 +17,20 @@ authenticated_key = None
 opcion = "Fernet"
 kms = None
 param = None
+diffie = None
+
+
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
     client.subscribe("/conexion/nueva")
-    
+
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     global opcion
     global kms
     global param
+    global diffie
     if msg.topic == "/conexion/nueva":
         #Mandamos a plataforma
         #print(pubkey)
@@ -36,19 +40,19 @@ def on_message(client, userdata, msg):
         
         client.publish("DH_AP_ESP", xml_public_key, 2, False)
 
-    elif msg.topic == "/DH_ESP_AP":
+    elif msg.topic == "DH_ESP_AP":
         # Genera clave simetrica
-      
+
         hashMaster = hashes.Hash(hashes.SHA384(), backend=default_backend())
         masterKey = kms.get_masterKey()
         hashMaster.update(masterKey)
         hashMaster = hashMaster.finalize()
+        print("hashMaster: ", hashMaster)
 
         # formato==> xmle='<root><data>b"-----BEGIN PUBLIC KEY-----\nMIGaMFMGCSqGSIb3DQEDATBGAkEA/RjM6Su358xSzRO2dLIU5qQL2dIhWkWrf98J\nzjhlNFcszuuFRuV6IIDCFIzRiOUCNPP2CNjR4sXJe5tWZvvGEwIBAgNDAAJAHE/b\nSLMoHayEju6gE2pVQrDZJD9zmwEzyg4vuf0F9kTfnpYE+tu57FCzFwDEWlLU4gni\nCszmHsYG+f25YMQASg==\n-----END PUBLIC KEY-----\n"</data></root>'
 
         pubkey_iot = ET.fromstring((msg.payload.decode('utf-8')))
         pubkey_iot = bytes.fromhex(pubkey_iot[0].text)
-        diffie = DH.DHExchange(param=None)
         shared_key = diffie.get_shared_key(pubkey_iot)
         hmacCalculado = hmac.HMAC(hashMaster, hashes.SHA384(), backend=default_backend())
         hmacCalculado.update(shared_key)
@@ -56,10 +60,7 @@ def on_message(client, userdata, msg):
         authenticated_key = hmacCalculado[0:16]
         symmetric_key = hmacCalculado[16:48]
         print("shared", shared_key)
-        
-        xml_hmac = '<?xml version="1.0"?><root><pubk>{pubkey}</pubk></root>'.format(pubkey=hmacCalculado.hex())
 
-        client.publish("HMAC", xml_hmac, 2, False)
         sleep(2)
         if opcion == "AEAD":
             f = AEAD(symmetric_key)
@@ -95,6 +96,7 @@ class CmdAP(cmd.Cmd):
         global opcion
         global pubkey
         global param
+        global diffie
         
         if len(args) > 0 :
             opcion = args[0]

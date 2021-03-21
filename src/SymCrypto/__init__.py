@@ -1,2 +1,2 @@
-from SymCrypto.FernetCustom import FernetCustom as Fernet
-from SymCrypto.AEAD import AEAD
+from src.SymCrypto.FernetCustom import FernetCustom as Fernet
+from src.SymCrypto.AEAD import AEAD
