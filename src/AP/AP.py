@@ -23,7 +23,7 @@ diffie = None
 def on_connect(client, userdata, flags, rc):
     client.subscribe("DH_ESP_AP")
     client.subscribe("/conexion/nueva")
-
+    client.subscribe("nuevoMensaje")
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
@@ -38,8 +38,10 @@ def on_message(client, userdata, msg):
 
         # Conexion con dispositivo IOT
         
+        
         client.publish("DH_AP_ESP", xml_public_key, 2, False)
-
+       
+        
     elif msg.topic == "DH_ESP_AP":
         # Genera clave simetrica
 
@@ -59,6 +61,9 @@ def on_message(client, userdata, msg):
         hmacCalculado = hmacCalculado.finalize()
         authenticated_key = hmacCalculado[0:16]
         symmetric_key = hmacCalculado[16:48]
+        
+        kms.add_device(pubkey_iot, symmetric_key)
+        
         print("shared", shared_key)
 
         sleep(2)
@@ -72,6 +77,34 @@ def on_message(client, userdata, msg):
             msgCifrado = f.encrypt("Connected")
             xml_msgCifrado = '<?xml version="1.0"?> <root><cif>{msgCifrado}</cif></root>'.format(msgCifrado=msgCifrado.hex())
             client.publish("AP_ESP_MSG", xml_msgCifrado, 2, False)
+    
+    
+    
+    
+    elif msg.topic == "nuevoMensaje":
+        pubkey_iot = ET.fromstring((msg.payload.decode('utf-8')))
+        pubkey_iot = bytes.fromhex(pubkey_iot[0].text)
+        symIot = kms.find_sym(pubkey_iot)
+        
+        
+        mensajeCifrado = ET.fromstring((msg.payload.decode('utf-8')))
+        mensajeCifrado = bytes.fromhex(mensajeCifrado[1].text)
+        
+        #print("symIot", symIot)
+        #print("msgCifrado", mensajeCifrado)
+        if opcion == "AEAD":
+
+            f = AEAD(symIot)
+            msgCifrado = f.decrypt(mensajeCifrado, b'\x03R\xc0@\x1d\xbf7\x86\xf1\xce\xbd\x85')
+            print("Mensaje recibido:", msgCifrado)
+        elif opcion == "Fernet":
+            f = FernetCustom(symIot)
+            msgCifrado = f.decrypt(mensajeCifrado)
+            print("Mensaje recibido:",msgCifrado)
+ 
+        
+    
+        
     else :
         print(msg.topic+" "+str(msg.payload.decode('utf-8')))
       
@@ -99,7 +132,7 @@ class CmdAP(cmd.Cmd):
         global diffie
         
         if len(args) > 0 :
-            opcion = args[0]
+            opcion = args
         
 
         #Inicializamos el cliente
@@ -128,6 +161,12 @@ class CmdAP(cmd.Cmd):
     
         kms = KMS_.KMS_()
         print(kms.get_hola())
+        
+    def do_list_ESP(self,args):
+        kms.list()
+    
+    def do_remove_ESP(self,args):
+        kms.remove()
      
    
     def do_exit(self,args):

@@ -22,7 +22,9 @@ authenticated_key = None
 masterKey = None
 pubkey = None
 pubkey_ap = None
-
+nombre = "Default"
+client = None
+already_connected = False
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -42,8 +44,9 @@ def on_message(client, userdata, msg):
     global masterKey
     global pubkey
     global pubkey_ap
+    global already_connected
     
-    if msg.topic == "DH_AP_ESP":
+    if msg.topic == "DH_AP_ESP" and already_connected==False:
         pubkey_ap_tree = ET.fromstring((msg.payload.decode('utf-8')))
 
         pubkey_ap = bytes.fromhex(pubkey_ap_tree[0].text)
@@ -75,7 +78,7 @@ def on_message(client, userdata, msg):
         symmetric_key = hmacCalculado[16:48]
 
 
-    elif msg.topic == "AP_ESP_MSG":
+    elif msg.topic == "AP_ESP_MSG" and already_connected==False:
 
         print("sym", symmetric_key)
 
@@ -90,6 +93,8 @@ def on_message(client, userdata, msg):
             f = FernetCustom(symmetric_key)
             msgCifrado = f.decrypt(mensajeCifrado)
             print(msgCifrado)
+        already_connected = True
+        
     else:
         print(msg.topic + " " + str(msg.payload))
 
@@ -107,8 +112,11 @@ class CmdESP_Virtual(cmd.Cmd):
         'Lanzar ESP'
         
         global opcion
+        global nombre
+        global client
         if len(args) > 0 :
-            opcion = args[0]
+            opcion = args
+          
         
         
         # Inicializamos el cliente
@@ -122,12 +130,32 @@ class CmdESP_Virtual(cmd.Cmd):
 
             #DH_ESP_AP
             #/conexion/nueva"
+      
         client.publish("/conexion/nueva", "hi", 2, False)
    
    
-    def do_ejemplo(self,args):
-        kms = KMS_.KMS_()
-        print(kms.get_hola())
+    def do_send(self,args):
+        global nombre
+        global pubkey
+        global client
+        if len(args) > 0 :
+            mensaje = args
+        else: mensaje ="hola"
+        
+        
+        if opcion == "AEAD":
+            f = AEAD(symmetric_key)
+            msgCifrado = f.encrypt(mensaje,b'\x03R\xc0@\x1d\xbf7\x86\xf1\xce\xbd\x85')
+       
+        elif opcion == "Fernet":
+            f = FernetCustom(symmetric_key)
+            msgCifrado = f.encrypt(mensaje)
+           
+        xml_msg = '<?xml version="1.0"?><root><nombre>{nombre}</nombre><msg>{mssg}</msg></root>'.format(nombre=pubkey.hex(), mssg = msgCifrado.hex())
+        client.publish("/nuevoMensaje", xml_msg, 2, False)
+    
+        
+        
     
     def do_exit(self,args):
 
